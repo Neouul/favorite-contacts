@@ -8,25 +8,34 @@ class ContactSystemDataSource(private val context: Context) {
 
     fun fetchSystemContacts(): List<Contact> {
         val contactList = mutableListOf<Contact>()
+        
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+            ContactsContract.CommonDataKinds.Phone.NUMBER
+        )
+
         val cursor = context.contentResolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            projection,
             null,
             null,
-            null,
-            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY + " ASC"
         )
 
         cursor?.use {
             val idIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-            val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
             val numberIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+
+            if (idIndex == -1 || nameIndex == -1 || numberIndex == -1) return emptyList()
 
             while (it.moveToNext()) {
                 val id = it.getString(idIndex)
                 val name = it.getString(nameIndex) ?: ""
                 val number = it.getString(numberIndex) ?: ""
                 
-                // 중복 방지 (여러 번호가 등록된 경우 첫 번째 번호만)
+                // 중복 방지
                 if (contactList.none { c -> c.id == id }) {
                     contactList.add(
                         Contact(

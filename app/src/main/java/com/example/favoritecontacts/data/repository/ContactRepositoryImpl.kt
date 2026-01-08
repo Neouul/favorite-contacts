@@ -1,7 +1,6 @@
 package com.example.favoritecontacts.data.repository
 
 import com.example.favoritecontacts.data.local.ContactDao
-import com.example.favoritecontacts.data.mapper.toDomainModel
 import com.example.favoritecontacts.data.mapper.toEntity
 import com.example.favoritecontacts.data.system.ContactSystemDataSource
 import com.example.favoritecontacts.domain.model.Contact
@@ -9,6 +8,7 @@ import com.example.favoritecontacts.domain.repository.ContactRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 class ContactRepositoryImpl(
     private val systemDataSource: ContactSystemDataSource,
@@ -36,7 +36,7 @@ class ContactRepositoryImpl(
     }
 
     override fun searchContacts(query: String): Flow<List<Contact>> {
-        return combine(getContacts()) { (contacts) ->
+        return getContacts().map { contacts ->
             contacts.filter { contact ->
                 contact.name.contains(query, ignoreCase = true) || 
                 contact.initials.contains(query, ignoreCase = true)
