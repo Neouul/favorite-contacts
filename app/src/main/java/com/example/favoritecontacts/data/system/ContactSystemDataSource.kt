@@ -42,7 +42,7 @@ class ContactSystemDataSource(private val context: Context) {
                             id = id,
                             name = name,
                             phoneNumber = number,
-                            initials = getKoreanInitials(name)
+                            initials = getSearchInitials(name)
                         )
                     )
                 }
@@ -51,20 +51,33 @@ class ContactSystemDataSource(private val context: Context) {
         return contactList
     }
 
-    private fun getKoreanInitials(text: String): String {
+    private fun getSearchInitials(text: String): String {
         val CHOSUNG = listOf(
             'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 
             'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
         )
         
-        return text.map { char ->
+        val initials = StringBuilder()
+        var lastCharWasSpace = true
+
+        text.forEach { char ->
             if (char in '\uAC00'..'\uD7A3') {
                 val code = char.toInt() - 0xAC00
                 val chosungIndex = code / (21 * 28)
-                CHOSUNG[chosungIndex]
+                initials.append(CHOSUNG[chosungIndex])
+                lastCharWasSpace = false
+            } else if (char.isLetter()) {
+                if (lastCharWasSpace) {
+                    initials.append(char)
+                }
+                lastCharWasSpace = false
+            } else if (char.isWhitespace()) {
+                lastCharWasSpace = true
             } else {
-                char
+                initials.append(char)
+                lastCharWasSpace = false
             }
-        }.joinToString("")
+        }
+        return initials.toString()
     }
 }

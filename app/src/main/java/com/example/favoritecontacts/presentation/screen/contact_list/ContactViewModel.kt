@@ -7,10 +7,11 @@ import com.example.favoritecontacts.domain.usecase.GetContactsUseCase
 import com.example.favoritecontacts.domain.usecase.SearchContactsUseCase
 import com.example.favoritecontacts.domain.usecase.ToggleFavoriteUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class ContactViewModel(
     private val getContactsUseCase: GetContactsUseCase,
     private val searchContactsUseCase: SearchContactsUseCase,
@@ -22,25 +23,31 @@ class ContactViewModel(
 
     private val _isLoading = MutableStateFlow(false)
     
-    val state: StateFlow<ContactState> = _searchQuery
-        .debounce(300)
-        .flatMapLatest { query ->
-            if (query.isBlank()) {
-                getContactsUseCase()
-            } else {
-                searchContactsUseCase(query)
+    val state: StateFlow<ContactState> = combine(
+        _searchQuery,
+        _searchQuery
+            .debounce(300)
+            .onEach { _isLoading.value = true }
+            .flatMapLatest { query ->
+                if (query.isBlank()) {
+                    getContactsUseCase()
+                } else {
+                    searchContactsUseCase(query)
+                }
             }
-        }
-        .onStart { _isLoading.value = true }
-        .onEach { _isLoading.value = false }
-        .map { contacts ->
-            ContactState(contacts = contacts, searchQuery = _searchQuery.value)
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ContactState(isLoading = true)
+            .onEach { _isLoading.value = false },
+        _isLoading
+    ) { query, contacts, isLoading ->
+        ContactState(
+            contacts = contacts,
+            searchQuery = query,
+            isLoading = isLoading
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ContactState(isLoading = true)
+    )
 
     fun onAction(action: ContactAction) {
         when (action) {

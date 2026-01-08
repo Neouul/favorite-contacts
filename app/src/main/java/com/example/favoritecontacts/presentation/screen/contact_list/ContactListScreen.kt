@@ -72,7 +72,7 @@ fun SearchBar(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier,
-        placeholder = { Text("이름 또는 초성으로 검색") },
+        placeholder = { Text("이름, 초성 또는 영문 검색") },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         singleLine = true,
         shape = MaterialTheme.shapes.medium,
