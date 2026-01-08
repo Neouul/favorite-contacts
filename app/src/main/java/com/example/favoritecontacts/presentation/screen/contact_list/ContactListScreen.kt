@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.favoritecontacts.domain.model.Contact
 
@@ -31,6 +32,7 @@ fun ContactListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // 검색 창
             SearchBar(
                 query = state.searchQuery,
                 onQueryChange = { onAction(ContactAction.OnSearchQueryChange(it)) },
@@ -38,6 +40,21 @@ fun ContactListScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             )
+
+            // 즐겨찾기 탭
+            val tabs = listOf("All", "Favorite")
+
+            TabRow(
+                selectedTabIndex = state.selectedTabIndex
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = state.selectedTabIndex == index,
+                        onClick = { onAction(ContactAction.OnTabClick(index)) },
+                        text = { Text(title) }
+                    )
+                }
+            }
 
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -100,5 +117,14 @@ fun ContactItem(
                 )
             }
         }
+    )
+}
+
+@Preview
+@Composable
+private fun PreviewContactListScreen() {
+    ContactListScreen(
+        state = ContactState(),
+        onAction = {},
     )
 }

@@ -18,44 +18,54 @@ class ContactViewModel(
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase
 ) : ViewModel() {
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery = _searchQuery.asStateFlow()
+    private val _state = MutableStateFlow(ContactState(isLoading = true))
+    val state: StateFlow<ContactState> = _state.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    
-    val state: StateFlow<ContactState> = combine(
-        _searchQuery,
-        _searchQuery
+    init {
+        val queryFlow = _state
+            .map { it.searchQuery }
+            .distinctUntilChanged()
             .debounce(300)
-            .onEach { _isLoading.value = true }
-            .flatMapLatest { query ->
-                if (query.isBlank()) {
+
+        val tabIndexFlow = _state
+            .map { it.selectedTabIndex }
+            .distinctUntilChanged()
+
+        combine(queryFlow, tabIndexFlow) { query, tabIndex ->
+            query to tabIndex
+        }
+            .onEach { _state.update { it.copy(isLoading = true) } }
+            .flatMapLatest { (query, tabIndex) ->
+                val contactsFlow = if (query.isBlank()) {
                     getContactsUseCase()
                 } else {
                     searchContactsUseCase(query)
                 }
+                
+                contactsFlow.map { contacts ->
+                    if (tabIndex == 1) {
+                        contacts.filter { it.isFavorite }
+                    } else {
+                        contacts
+                    }
+                }
             }
-            .onEach { _isLoading.value = false },
-        _isLoading
-    ) { query, contacts, isLoading ->
-        ContactState(
-            contacts = contacts,
-            searchQuery = query,
-            isLoading = isLoading
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ContactState(isLoading = true)
-    )
+            .onEach { contacts ->
+                _state.update { it.copy(contacts = contacts, isLoading = false) }
+            }
+            .launchIn(viewModelScope)
+    }
 
     fun onAction(action: ContactAction) {
         when (action) {
             is ContactAction.OnSearchQueryChange -> {
-                _searchQuery.value = action.query
+                _state.update { it.copy(searchQuery = action.query) }
             }
             is ContactAction.OnToggleFavorite -> {
                 toggleFavorite(action.contact)
+            }
+            is ContactAction.OnTabClick -> {
+                _state.update { it.copy(selectedTabIndex = action.index) }
             }
         }
     }

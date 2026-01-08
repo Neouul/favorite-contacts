@@ -6,5 +6,6 @@ data class ContactState(
     val isLoading: Boolean = false,
     val contacts: List<Contact> = emptyList(),
     val searchQuery: String = "",
+    val selectedTabIndex: Int = 0,
     val errorMessage: String? = null
 )
